@@ -1,330 +1,214 @@
 import React, { useState } from "react";
 
-import {
-  Plus,
-  MessageSquare,
-  PanelLeft,
-  Trash2
-} from "lucide-react";
-
 function AINotesPage() {
-
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
+  const [chats, setChats] = useState([]);
+  const [activeChatId, setActiveChatId] = useState(null);
   const [input, setInput] = useState("");
+  const [image, setImage] = useState(null);
 
-  const [messages, setMessages] = useState([]);
+  const activeChat = chats.find((c) => c.id === activeChatId);
 
-  const [loading, setLoading] = useState(false);
+  const suggestions = [
+    "Explain Photosynthesis",
+    "AI in simple terms",
+    "Newton's Laws",
+    "Python basics",
+    "Important exam questions",
+    "Quantum physics",
+  ];
 
-  const [chatHistory, setChatHistory] = useState([
-    "Introduction to AI",
-    "Photosynthesis Notes",
-    "Gravity Summary"
-  ]);
-
-  // Generate AI Notes
-  const handleGenerate = () => {
-
-    if (!input.trim()) return;
-
-    setLoading(true);
-
-    const userMessage = {
-      role: "user",
-      text: input
+  // create chat ONLY if needed (NO UI reset)
+  const createChatIfNeeded = (title = "New Chat") => {
+    const newChat = {
+      id: Date.now(),
+      title,
+      messages: [],
     };
 
-    const aiMessage = {
-      role: "ai",
-      text:
-        `📘 AI Notes on "${input}"\n\n` +
-        `• Introduction\n` +
-        `• Key Concepts\n` +
-        `• Important Facts\n` +
-        `• Real-world Examples\n\n` +
-        `This is a professional AI response placeholder.`
-    };
-
-    setTimeout(() => {
-
-      setMessages((prev) => [
-        ...prev,
-        userMessage,
-        aiMessage
-      ]);
-
-      setLoading(false);
-
-    }, 1500);
-
-    setChatHistory((prev) => [input, ...prev]);
-
-    setInput("");
+    setChats((prev) => [newChat, ...prev]);
+    setActiveChatId(newChat.id);
+    return newChat.id;
   };
 
-  // New Chat
-  const handleNewChat = () => {
-    setMessages([]);
+  const handleSend = () => {
+    if (!input.trim() && !image) return;
+
+    let chatId = activeChatId;
+
+    if (!chatId) {
+      chatId = createChatIfNeeded(input.slice(0, 20));
+    }
+
+    const userMsg = {
+      role: "user",
+      text: input,
+      image,
+    };
+
+    const aiMsg = {
+      role: "ai",
+      text: `📘 AI Notes for "${input || "image"}"
+
+• Definition
+• Key concepts
+• Examples
+• Exam points`,
+    };
+
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat.id === chatId
+          ? {
+              ...chat,
+              messages: [...chat.messages, userMsg, aiMsg],
+              title:
+                chat.title === "New Chat"
+                  ? input.slice(0, 25)
+                  : chat.title,
+            }
+          : chat
+      )
+    );
+
     setInput("");
+    setImage(null);
+  };
+
+  const startFromSuggestion = (text) => {
+    setInput(text);
+    createChatIfNeeded(text);
   };
 
   return (
+    <div className="h-screen flex bg-gray-950 text-white">
 
-    <div className="h-screen bg-black text-white flex overflow-hidden relative">
+      {/* ================= SIDEBAR ================= */}
+      <div className="w-64 bg-black/40 border-r border-white/10 flex flex-col">
 
-      {/* Background Glow Effects */}
-      <div className="absolute top-[-150px] left-[-100px] w-[400px] h-[400px] bg-blue-500/20 blur-[120px] rounded-full"></div>
+        <div className="p-4">
+          <h1 className="text-lg font-light">
+            Edunova<span className="text-blue-400 font-semibold">.AI</span>
+          </h1>
 
-      <div className="absolute bottom-[-200px] right-[-100px] w-[500px] h-[500px] bg-purple-500/20 blur-[140px] rounded-full"></div>
+          <button
+            onClick={() => createChatIfNeeded()}
+            className="mt-4 w-full bg-blue-500 hover:bg-blue-600 py-2 rounded-xl"
+          >
+            + New Chat
+          </button>
+        </div>
 
-      <div className="absolute top-[40%] left-[45%] w-[300px] h-[300px] bg-cyan-500/10 blur-[120px] rounded-full"></div>
+        {/* CHAT HISTORY (NEVER LOST) */}
+        <div className="flex-1 overflow-y-auto px-2 space-y-2">
 
-      {/* SIDEBAR */}
-      {sidebarOpen && (
-
-        <div className="w-72 bg-white/[0.03] backdrop-blur-2xl border-r border-white/10 flex flex-col z-10">
-
-          {/* TOP */}
-          <div className="p-4 border-b border-white/10 flex items-center justify-between">
-
-            <h1 className="text-xl font-light">
-              Edunova
-              <span className="text-blue-400 font-semibold">
-                .AI
-              </span>
-            </h1>
-
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="hover:bg-white/10 p-2 rounded-lg transition"
+          {chats.map((chat) => (
+            <div
+              key={chat.id}
+              onClick={() => setActiveChatId(chat.id)}
+              className={`p-3 rounded-xl cursor-pointer text-sm truncate ${
+                chat.id === activeChatId
+                  ? "bg-blue-500/20"
+                  : "hover:bg-white/10"
+              }`}
             >
-              <PanelLeft size={18} />
-            </button>
+              {chat.title}
+            </div>
+          ))}
 
-          </div>
+        </div>
+      </div>
 
-          {/* NEW CHAT */}
-          <div className="p-4">
+      {/* ================= MAIN AREA ================= */}
+      <div className="flex-1 flex flex-col">
 
-            <button
-              onClick={handleNewChat}
-              className="w-full bg-blue-500 hover:bg-blue-600 rounded-2xl py-3 flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] shadow-lg shadow-blue-500/20"
-            >
-              <Plus size={18} />
-              New Chat
-            </button>
+        {/* CHAT CONTENT */}
+        <div className="flex-1 overflow-y-auto p-6">
 
-          </div>
+          {/* ================= WELCOME SCREEN ================= */}
+          {!activeChat || activeChat.messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center">
 
-          {/* HISTORY */}
-          <div className="flex-1 overflow-y-auto px-3 pb-4">
+              <h1 className="text-4xl font-light">
+                Ask anything to <span className="text-blue-400">Edunova.AI</span>
+              </h1>
 
-            <p className="text-gray-400 text-sm mb-3 px-2">
-              Recent Chats
-            </p>
+              <p className="text-gray-400 mt-3">
+                Your AI notes assistant for learning smarter 🚀
+              </p>
 
-            <div className="space-y-2">
+              {/* suggestions */}
+              <div className="grid grid-cols-2 gap-3 mt-10 max-w-2xl">
 
-              {chatHistory.map((chat, index) => (
+                {suggestions.map((s, i) => (
+                  <div
+                    key={i}
+                    onClick={() => startFromSuggestion(s)}
+                    className="bg-white/5 border border-white/10 hover:bg-white/10 p-4 rounded-xl cursor-pointer"
+                  >
+                    {s}
+                  </div>
+                ))}
 
-                <div
-                  key={index}
-                  className="bg-white/[0.03] hover:bg-white/[0.07] transition-all duration-300 p-3 rounded-2xl cursor-pointer flex items-center gap-3 border border-white/5"
-                >
-                  <MessageSquare size={16} />
+              </div>
 
-                  <p className="text-sm truncate">
-                    {chat}
-                  </p>
+            </div>
+          ) : (
+            <>
+              {/* ================= MESSAGES ================= */}
+              {activeChat.messages.map((msg, i) => (
+                <div key={i} className="mb-4">
+
+                  <div
+                    className={`max-w-2xl p-4 rounded-2xl whitespace-pre-line ${
+                      msg.role === "user"
+                        ? "bg-blue-500/20 ml-auto"
+                        : "bg-white/5 border border-white/10"
+                    }`}
+                  >
+                    {msg.text}
+
+                    {/* IMAGE SUPPORT */}
+                    {msg.image && (
+                      <img
+                        src={URL.createObjectURL(msg.image)}
+                        className="mt-3 rounded-xl max-h-60"
+                      />
+                    )}
+                  </div>
 
                 </div>
-
               ))}
-
-            </div>
-
-          </div>
-
-          {/* BOTTOM */}
-          <div className="p-4 border-t border-white/10">
-
-            <button
-              className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-2xl py-3 flex items-center justify-center gap-2 transition-all duration-300"
-            >
-              <Trash2 size={16} />
-              Clear Chats
-            </button>
-
-          </div>
-
-        </div>
-
-      )}
-
-      {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col z-10">
-
-        {/* TOP BAR */}
-        <div className="h-16 border-b border-white/10 flex items-center px-6 backdrop-blur-xl">
-
-          {!sidebarOpen && (
-
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="hover:bg-white/10 p-2 rounded-lg transition"
-            >
-              <PanelLeft size={20} />
-            </button>
-
+            </>
           )}
 
         </div>
 
-        {/* CHAT AREA */}
-        <div className="flex-1 overflow-y-auto px-6 py-10 flex flex-col items-center">
+        {/* ================= INPUT BAR ================= */}
+        <div className="p-4 border-t border-white/10">
 
-          {/* HERO SECTION */}
-          {messages.length === 0 && (
+          <div className="max-w-3xl mx-auto flex items-center gap-3 bg-white/5 p-3 rounded-2xl">
 
-            <div className="mt-16 w-full max-w-5xl">
-
-              {/* Heading */}
-              <div className="text-center">
-
-                <h2 className="text-6xl font-light leading-tight">
-                  Your AI Learning Assistant
-                </h2>
-
-                <p className="text-gray-400 mt-6 text-xl">
-                  Generate notes, summaries, explanations,
-                  assignments, and study material instantly.
-                </p>
-
-              </div>
-
-              {/* Suggestion Cards */}
-              <div className="grid md:grid-cols-2 gap-6 mt-16">
-
-                {/* Card 1 */}
-                <div
-                  onClick={() =>
-                    setInput("Generate detailed notes on Artificial Intelligence")
-                  }
-                  className="bg-white/[0.04] border border-white/10 hover:border-blue-500 hover:bg-white/[0.08] transition-all duration-300 cursor-pointer rounded-3xl p-7 backdrop-blur-xl"
-                >
-                  <h3 className="text-2xl">
-                    📘 Generate Exam Notes
-                  </h3>
-
-                  <p className="text-gray-400 mt-3 text-sm leading-6">
-                    Create detailed AI-generated study notes instantly.
-                  </p>
-                </div>
-
-                {/* Card 2 */}
-                <div
-                  onClick={() =>
-                    setInput("Explain Quantum Physics in simple words")
-                  }
-                  className="bg-white/[0.04] border border-white/10 hover:border-blue-500 hover:bg-white/[0.08] transition-all duration-300 cursor-pointer rounded-3xl p-7 backdrop-blur-xl"
-                >
-                  <h3 className="text-2xl">
-                    🧠 Explain Concepts
-                  </h3>
-
-                  <p className="text-gray-400 mt-3 text-sm leading-6">
-                    Understand difficult topics in simple language.
-                  </p>
-                </div>
-
-                {/* Card 3 */}
-                <div
-                  onClick={() =>
-                    setInput("Create a quiz on Photosynthesis")
-                  }
-                  className="bg-white/[0.04] border border-white/10 hover:border-blue-500 hover:bg-white/[0.08] transition-all duration-300 cursor-pointer rounded-3xl p-7 backdrop-blur-xl"
-                >
-                  <h3 className="text-2xl">
-                    ❓ Generate Quiz
-                  </h3>
-
-                  <p className="text-gray-400 mt-3 text-sm leading-6">
-                    Practice with AI-generated quiz questions.
-                  </p>
-                </div>
-
-                {/* Card 4 */}
-                <div
-                  onClick={() =>
-                    setInput("Help me write an assignment on Cyber Security")
-                  }
-                  className="bg-white/[0.04] border border-white/10 hover:border-blue-500 hover:bg-white/[0.08] transition-all duration-300 cursor-pointer rounded-3xl p-7 backdrop-blur-xl"
-                >
-                  <h3 className="text-2xl">
-                    📝 Assignment Help
-                  </h3>
-
-                  <p className="text-gray-400 mt-3 text-sm leading-6">
-                    Generate assignments and structured answers instantly.
-                  </p>
-                </div>
-
-              </div>
-
-            </div>
-
-          )}
-
-          {/* MESSAGES */}
-          <div className="w-full max-w-4xl space-y-6 mt-10">
-
-            {/* Loading */}
-            {loading && (
-
-              <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-6 max-w-sm backdrop-blur-xl">
-                🤖 AI is generating response...
-              </div>
-
-            )}
-
-            {/* Chat Messages */}
-            {messages.map((msg, index) => (
-
-              <div
-                key={index}
-                className={`rounded-3xl p-6 whitespace-pre-line shadow-xl backdrop-blur-xl ${
-                  msg.role === "user"
-                    ? "bg-blue-500/20 ml-auto w-fit max-w-xl border border-blue-500/20"
-                    : "bg-white/[0.04] border border-white/10"
-                }`}
-              >
-                {msg.text}
-              </div>
-
-            ))}
-
-          </div>
-
-        </div>
-
-        {/* INPUT BAR */}
-        <div className="p-6 border-t border-white/10 backdrop-blur-xl">
-
-          <div className="max-w-4xl mx-auto flex gap-3">
+            <label className="cursor-pointer text-xl px-2">
+              📎
+              <input
+                type="file"
+                hidden
+                onChange={(e) => setImage(e.target.files[0])}
+              />
+            </label>
 
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask AI anything..."
-              className="flex-1 bg-white/[0.04] backdrop-blur-xl border border-white/10 px-5 py-4 rounded-2xl outline-none text-white focus:border-blue-500 transition"
+              placeholder="Ask your doubt..."
+              className="flex-1 bg-transparent outline-none"
             />
 
             <button
-              onClick={handleGenerate}
-              className="bg-blue-500 hover:bg-blue-600 hover:scale-105 px-8 rounded-2xl transition-all duration-300 shadow-lg shadow-blue-500/20"
+              onClick={handleSend}
+              className="bg-blue-500 px-5 py-2 rounded-xl hover:bg-blue-600"
             >
-              Generate
+              Send
             </button>
 
           </div>
@@ -332,7 +216,6 @@ function AINotesPage() {
         </div>
 
       </div>
-
     </div>
   );
 }

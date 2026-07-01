@@ -3,7 +3,10 @@ import { motion } from "framer-motion";
 
 function Features() {
   return (
-    <section className="bg-gray-950 text-white py-24 px-6">
+<section
+  id="features"
+  className="bg-gray-950 text-white py-24 px-6"
+>
 
       {/* Section Heading */}
       <div className="text-center mb-16">

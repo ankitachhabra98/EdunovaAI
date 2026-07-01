@@ -5,7 +5,7 @@ function ProtectedRoute({ children }) {
 
   const isLoggedIn = localStorage.getItem("isLoggedIn");
 
-  if (!isLoggedIn || isLoggedIn !== "true") {
+  if (!isLoggedIn) {
     return <Navigate to="/login" />;
   }
 

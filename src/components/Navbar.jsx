@@ -20,17 +20,40 @@ function Navbar() {
         {/* Nav Links */}
         <ul className="hidden md:flex gap-8 text-gray-300">
 
-          <li className="hover:text-white transition cursor-pointer">
-            Home
-          </li>
+         <li
+  onClick={() =>
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    })
+  }
+  className="hover:text-white transition cursor-pointer"
+>
+  Home
+</li>
 
-          <li className="hover:text-white transition cursor-pointer">
-            Features
-          </li>
+          <li
+  onClick={() =>
+    window.scrollTo({
+      top: document.getElementById("features").offsetTop,
+      behavior: "smooth",
+    })
+  }
+  className="hover:text-white transition cursor-pointer"
+>
+  Features
+</li>
 
-          <li className="hover:text-white transition cursor-pointer">
-            About
-          </li>
+          <li
+  onClick={() =>
+    document.getElementById("features")?.scrollIntoView({
+      behavior: "smooth",
+    })
+  }
+  className="hover:text-white transition cursor-pointer"
+>
+About
+</li>
 
         </ul>
 

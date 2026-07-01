@@ -1,7 +1,11 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 function Hero() {
+
+  const navigate = useNavigate();
+
   return (
     <div className="relative bg-gray-950 text-white min-h-screen flex items-center justify-center overflow-hidden px-6">
 
@@ -47,6 +51,7 @@ function Hero() {
 
         {/* Animated Button */}
         <motion.button
+          onClick={() => navigate("/login")}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2, duration: 1 }}
