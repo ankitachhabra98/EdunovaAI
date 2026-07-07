@@ -15,17 +15,41 @@ function Dashboard() {
 
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
+  const [stats, setStats] = useState({
+    quizzes_completed: 0,
+    learning_score: "0%",
+    assignments_completed: 0,
+    notes_available: 0
+  });
 
-  // Login Protection
+  // Login Protection & Fetch Stats
   useEffect(() => {
 
     const loggedIn = localStorage.getItem("isLoggedIn");
     const storedUser = localStorage.getItem("username");
+    const token = localStorage.getItem("token");
 
     if (!loggedIn || !storedUser) {
       navigate("/login");
     } else {
       setUsername(storedUser);
+      
+      const fetchStats = async () => {
+        try {
+          const response = await fetch("http://127.0.0.1:8000/analytics", {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          const json = await response.json();
+          if (response.ok && json.stats) {
+            setStats(json.stats);
+          }
+        } catch (err) {
+          console.error("Error fetching dashboard stats:", err);
+        }
+      };
+      fetchStats();
     }
 
   }, [navigate]);
@@ -152,18 +176,18 @@ function Dashboard() {
         <div className="grid md:grid-cols-3 gap-6 mt-12">
 
           <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-6">
-            <h3 className="text-gray-400">AI Sessions</h3>
-            <p className="text-4xl mt-4 text-blue-400 font-semibold">12</p>
+            <h3 className="text-gray-400">Quizzes Completed</h3>
+            <p className="text-4xl mt-4 text-blue-400 font-semibold">{stats.quizzes_completed}</p>
           </div>
 
           <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-6">
-            <h3 className="text-gray-400">Assignments</h3>
-            <p className="text-4xl mt-4 text-green-400 font-semibold">5</p>
+            <h3 className="text-gray-400">Assignments Completed</h3>
+            <p className="text-4xl mt-4 text-green-400 font-semibold">{stats.assignments_completed}</p>
           </div>
 
           <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-6">
             <h3 className="text-gray-400">Notes Available</h3>
-            <p className="text-4xl mt-4 text-purple-400 font-semibold">24</p>
+            <p className="text-4xl mt-4 text-purple-400 font-semibold">{stats.notes_available}</p>
           </div>
 
         </div>

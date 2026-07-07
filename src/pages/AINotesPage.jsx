@@ -30,29 +30,28 @@ function AINotesPage() {
     return newChat.id;
   };
 
-  const handleSend = () => {
-    if (!input.trim() && !image) return;
+  const handleSend = async (customText = null) => {
+    const textToSend = typeof customText === "string" ? customText : input;
+    if (!textToSend.trim()) return;
+
+    setInput("");
+    setImage(null);
 
     let chatId = activeChatId;
 
     if (!chatId) {
-      chatId = createChatIfNeeded(input.slice(0, 20));
+      chatId = createChatIfNeeded(textToSend.slice(0, 20));
     }
 
     const userMsg = {
       role: "user",
-      text: input,
+      text: textToSend,
       image,
     };
 
     const aiMsg = {
       role: "ai",
-      text: `📘 AI Notes for "${input || "image"}"
-
-• Definition
-• Key concepts
-• Examples
-• Exam points`,
+      text: "⌛ Generating AI Notes...",
     };
 
     setChats((prev) =>
@@ -63,20 +62,66 @@ function AINotesPage() {
               messages: [...chat.messages, userMsg, aiMsg],
               title:
                 chat.title === "New Chat"
-                  ? input.slice(0, 25)
+                  ? textToSend.slice(0, 25)
                   : chat.title,
             }
           : chat
       )
     );
 
-    setInput("");
-    setImage(null);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://127.0.0.1:8000/generate-summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ text: textToSend })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.summary) {
+        setChats((prev) =>
+          prev.map((chat) => {
+            if (chat.id === chatId) {
+              const updatedMessages = [...chat.messages];
+              const placeholderIndex = updatedMessages.length - 1;
+              updatedMessages[placeholderIndex] = {
+                role: "ai",
+                text: data.summary,
+              };
+              return { ...chat, messages: updatedMessages };
+            }
+            return chat;
+          })
+        );
+      } else {
+        throw new Error(data.error || "Failed to generate summary");
+      }
+    } catch (err) {
+      console.error(err);
+      setChats((prev) =>
+        prev.map((chat) => {
+          if (chat.id === chatId) {
+            const updatedMessages = [...chat.messages];
+            const placeholderIndex = updatedMessages.length - 1;
+            updatedMessages[placeholderIndex] = {
+              role: "ai",
+              text: `❌ Error: ${err.message || "Could not connect to AI service."}`,
+            };
+            return { ...chat, messages: updatedMessages };
+          }
+          return chat;
+        })
+      );
+    }
   };
 
   const startFromSuggestion = (text) => {
-    setInput(text);
     createChatIfNeeded(text);
+    handleSend(text);
   };
 
   return (

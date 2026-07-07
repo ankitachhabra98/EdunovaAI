@@ -42,30 +42,53 @@ function LoginPage() {
   };
 
   // Submit
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
 
     e.preventDefault();
 
-    localStorage.setItem("userRole", role);
+    try {
+      const loginData = new URLSearchParams();
+      loginData.append("username", formData.email);
+      loginData.append("password", formData.password);
 
-    localStorage.setItem("username", formData.name);
+      const response = await fetch("http://127.0.0.1:8000/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: loginData
+      });
 
-    localStorage.setItem("isLoggedIn", "true");
+      const data = await response.json();
 
-    // Show Success Popup
-    setShowSuccess(true);
+      if (response.ok && data.access_token) {
+        // Save live session data
+        localStorage.setItem("token", data.access_token);
+        localStorage.setItem("role", data.role);
+        localStorage.setItem("full_name", data.full_name);
+        
+        // Legacy keys to keep compatibility
+        localStorage.setItem("userRole", data.role === "teacher" ? "Teacher" : "Student");
+        localStorage.setItem("username", data.full_name);
+        localStorage.setItem("isLoggedIn", "true");
 
-    // Faster Redirect
-    setTimeout(() => {
+        // Show Success Popup
+        setShowSuccess(true);
 
-      window.location.href =
-        role === "Admin"
-          ? "/admin-dashboard"
-          : role === "Teacher"
-          ? "/teacher-dashboard"
-          : "/dashboard";
-
-    }, 1500);
+        // Redirect
+        setTimeout(() => {
+          window.location.href =
+            data.role === "teacher"
+              ? "/teacher-dashboard"
+              : "/dashboard";
+        }, 1500);
+      } else {
+        alert(data.message || "Invalid email or password");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Authentication failed. Please check backend server.");
+    }
 
   };
 

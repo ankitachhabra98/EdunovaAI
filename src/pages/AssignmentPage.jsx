@@ -26,7 +26,7 @@ function AssignmentPage() {
   }, []);
 
   // IMAGE HANDLER
-  const handleFileChange = (e, id) => {
+  const handleFileChange = (e, title) => {
 
     const file = e.target.files[0];
 
@@ -34,40 +34,73 @@ function AssignmentPage() {
 
     setFiles({
       ...files,
-      [id]: file,
+      [title]: file,
     });
 
   };
 
   // SUBMIT
-  const handleSubmit = (id) => {
+  const handleSubmit = async (title) => {
 
-    const hasText = textAnswers[id]?.trim();
-    const hasImage = files[id];
+    const hasText = textAnswers[title]?.trim();
+    const hasImage = files[title];
 
     if (!hasText && !hasImage) {
       alert("Please write answer or upload image 📌");
       return;
     }
 
-    const updated = {
-      ...submitted,
-      [id]: {
-        submitted: true,
-        text: textAnswers[id] || null,
-        fileUrl: files[id] ? URL.createObjectURL(files[id]) : null,
-        fileName: files[id]?.name || null,
-      },
-    };
+    try {
+      const token = localStorage.getItem("token");
+      const formData = new FormData();
+      formData.append("title", title);
+      
+      if (hasText) {
+        formData.append("text_answer", hasText);
+      }
+      if (hasImage) {
+        formData.append("file", hasImage);
+      }
 
-    setSubmitted(updated);
+      const response = await fetch(
+        "http://127.0.0.1:8000/submit-assignment",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        }
+      );
 
-    localStorage.setItem(
-      "submittedAssignments",
-      JSON.stringify(updated)
-    );
+      const data = await response.json();
 
-    alert("Assignment Submitted 🚀");
+      if (response.ok) {
+        const updated = {
+          ...submitted,
+          [title]: {
+            submitted: true,
+            text: hasText || null,
+            fileUrl: hasImage ? URL.createObjectURL(hasImage) : null,
+            fileName: hasImage ? hasImage.name : null,
+          },
+        };
+
+        setSubmitted(updated);
+
+        localStorage.setItem(
+          "submittedAssignments",
+          JSON.stringify(updated)
+        );
+
+        alert("Assignment Submitted 🚀");
+      } else {
+        alert(data.message || "Failed to submit assignment");
+      }
+    } catch (error) {
+      console.log(error);
+      alert("Server Error");
+    }
 
   };
 
@@ -95,12 +128,12 @@ function AssignmentPage() {
         {/* ASSIGNMENT LIST */}
         {assignments.map((a) => {
 
-          const isDone = submitted[a.id]?.submitted;
+          const isDone = submitted[a.title]?.submitted;
 
           return (
 
             <div
-              key={a.id}
+              key={a.title}
               className="bg-white/5 border border-white/10 p-6 rounded-2xl"
             >
 
@@ -129,10 +162,10 @@ function AssignmentPage() {
 
                   <button
                     onClick={() =>
-                      setMode({ ...mode, [a.id]: "text" })
+                      setMode({ ...mode, [a.title]: "text" })
                     }
                     className={`px-3 py-2 rounded-xl flex items-center gap-2 ${
-                      mode[a.id] === "text"
+                      mode[a.title] === "text"
                         ? "bg-blue-500"
                         : "bg-white/5"
                     }`}
@@ -143,10 +176,10 @@ function AssignmentPage() {
 
                   <button
                     onClick={() =>
-                      setMode({ ...mode, [a.id]: "image" })
+                      setMode({ ...mode, [a.title]: "image" })
                     }
                     className={`px-3 py-2 rounded-xl flex items-center gap-2 ${
-                      mode[a.id] === "image"
+                      mode[a.title] === "image"
                         ? "bg-blue-500"
                         : "bg-white/5"
                     }`}
@@ -159,14 +192,14 @@ function AssignmentPage() {
               )}
 
               {/* TEXT */}
-              {!isDone && mode[a.id] === "text" && (
+              {!isDone && mode[a.title] === "text" && (
                 <textarea
                   placeholder="Write your answer..."
-                  value={textAnswers[a.id] || ""}
+                  value={textAnswers[a.title] || ""}
                   onChange={(e) =>
                     setTextAnswers({
                       ...textAnswers,
-                      [a.id]: e.target.value,
+                      [a.title]: e.target.value,
                     })
                   }
                   className="w-full mt-4 bg-white/5 border border-white/10 p-4 rounded-xl"
@@ -175,7 +208,7 @@ function AssignmentPage() {
               )}
 
               {/* IMAGE */}
-              {!isDone && mode[a.id] === "image" && (
+              {!isDone && mode[a.title] === "image" && (
                 <div className="mt-4">
 
                   <label className="cursor-pointer flex items-center gap-2 bg-white/5 px-4 py-3 rounded-xl w-fit border border-white/10">
@@ -187,14 +220,14 @@ function AssignmentPage() {
                       type="file"
                       accept="image/*"
                       hidden
-                      onChange={(e) => handleFileChange(e, a.id)}
+                      onChange={(e) => handleFileChange(e, a.title)}
                     />
 
                   </label>
 
-                  {files[a.id] && (
+                  {files[a.title] && (
                     <p className="text-gray-400 text-sm mt-2">
-                      Selected: {files[a.id].name}
+                      Selected: {files[a.title].name}
                     </p>
                   )}
 
@@ -205,15 +238,15 @@ function AssignmentPage() {
               {isDone && (
                 <div className="mt-4 space-y-3">
 
-                  {submitted[a.id].text && (
+                  {submitted[a.title].text && (
                     <p className="text-gray-300 bg-white/5 p-3 rounded-xl">
-                      {submitted[a.id].text}
+                      {submitted[a.title].text}
                     </p>
                   )}
 
-                  {submitted[a.id].fileUrl && (
+                  {submitted[a.title].fileUrl && (
                     <img
-                      src={submitted[a.id].fileUrl}
+                      src={submitted[a.title].fileUrl}
                       className="w-40 rounded-xl border border-white/10"
                     />
                   )}
@@ -229,7 +262,7 @@ function AssignmentPage() {
               {/* BUTTON */}
               {!isDone && (
                 <button
-                  onClick={() => handleSubmit(a.id)}
+                  onClick={() => handleSubmit(a.title)}
                   className="mt-5 px-5 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 flex items-center gap-2"
                 >
                   <Upload size={18} />

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 import {
   Brain,
@@ -9,34 +9,59 @@ import {
 } from "lucide-react";
 
 function AnalyticsPage() {
+  const [data, setData] = useState({
+    quizzes_completed: 0,
+    learning_score: "0%",
+    assignments_completed: 0,
+    notes_available: 0
+  });
 
-  // Demo Analytics Data
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://127.0.0.1:8000/analytics", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const json = await response.json();
+        if (response.ok && json.stats) {
+          setData(json.stats);
+        }
+      } catch (err) {
+        console.error("Error fetching analytics:", err);
+      }
+    };
+    fetchAnalytics();
+  }, []);
+
+  const learningScoreInt = parseInt(data.learning_score) || 0;
+  const assignmentsPercent = Math.min(data.assignments_completed * 20, 100);
+  const notesPercent = Math.min(data.notes_available * 10, 100);
+
   const stats = [
-
     {
-      title: "AI Sessions",
-      value: "24",
+      title: "Quizzes Completed",
+      value: data.quizzes_completed.toString(),
       icon: <Brain size={28} className="text-blue-400" />,
       color: "blue"
     },
-
     {
       title: "Assignments Completed",
-      value: "12",
+      value: data.assignments_completed.toString(),
       icon: <FileText size={28} className="text-green-400" />,
       color: "green"
     },
-
     {
-      title: "Notes Accessed",
-      value: "36",
+      title: "Notes Available",
+      value: data.notes_available.toString(),
       icon: <BookOpen size={28} className="text-purple-400" />,
       color: "purple"
     },
-
     {
       title: "Learning Score",
-      value: "89%",
+      value: data.learning_score,
       icon: <Trophy size={28} className="text-yellow-400" />,
       color: "yellow"
     }
@@ -138,24 +163,24 @@ function AnalyticsPage() {
             {/* Progress Bars */}
             <div className="mt-10 space-y-8">
 
-              {/* AI Usage */}
+              {/* Learning Score */}
               <div>
 
                 <div className="flex items-center justify-between mb-3">
 
                   <p className="text-lg">
-                    AI Usage
+                    Learning Score
                   </p>
 
                   <p className="text-blue-400">
-                    80%
+                    {data.learning_score}
                   </p>
 
                 </div>
 
                 <div className="w-full h-4 bg-white/10 rounded-full overflow-hidden">
 
-                  <div className="w-[80%] h-full bg-blue-500 rounded-full" />
+                  <div style={{ width: `${learningScoreInt}%` }} className="h-full bg-blue-500 rounded-full" />
 
                 </div>
 
@@ -171,14 +196,14 @@ function AnalyticsPage() {
                   </p>
 
                   <p className="text-green-400">
-                    65%
+                    {assignmentsPercent}%
                   </p>
 
                 </div>
 
                 <div className="w-full h-4 bg-white/10 rounded-full overflow-hidden">
 
-                  <div className="w-[65%] h-full bg-green-500 rounded-full" />
+                  <div style={{ width: `${assignmentsPercent}%` }} className="h-full bg-green-500 rounded-full" />
 
                 </div>
 
@@ -194,14 +219,14 @@ function AnalyticsPage() {
                   </p>
 
                   <p className="text-purple-400">
-                    90%
+                    {notesPercent}%
                   </p>
 
                 </div>
 
                 <div className="w-full h-4 bg-white/10 rounded-full overflow-hidden">
 
-                  <div className="w-[90%] h-full bg-purple-500 rounded-full" />
+                  <div style={{ width: `${notesPercent}%` }} className="h-full bg-purple-500 rounded-full" />
 
                 </div>
 
@@ -249,7 +274,7 @@ function AnalyticsPage() {
                 </h3>
 
                 <p className="text-gray-400 mt-3">
-                  Completed 10 AI sessions this week.
+                  Completed {data.quizzes_completed} quizzes so far.
                 </p>
 
               </div>
@@ -261,7 +286,7 @@ function AnalyticsPage() {
                 </h3>
 
                 <p className="text-gray-400 mt-3">
-                  Accessed more than 20 notes.
+                  {data.notes_available} lecture notes available for your class.
                 </p>
 
               </div>
@@ -273,7 +298,7 @@ function AnalyticsPage() {
                 </h3>
 
                 <p className="text-gray-400 mt-3">
-                  Submitted all assignments on time.
+                  Submitted {data.assignments_completed} assignments to the database.
                 </p>
 
               </div>
